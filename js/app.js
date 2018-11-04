@@ -1,6 +1,7 @@
 var gameScenes = Array();
 var infoPanel;
 var currentScene = "universe";
+var planets = Array();
 
 function setup() {
     createCanvas(600, 600);
@@ -14,6 +15,10 @@ function setup() {
 
 function draw () {
     gameScenes[currentScene].draw();
+}
+
+function mouseMoved() {
+    gameScenes[currentScene].mouseMoved();
 }
 
 function mousePressed() {
@@ -34,6 +39,8 @@ class GameObject{
     }
 
     draw(){}
+    mousePressed(){}
+    mouseMoved(){}
 
 }
 
@@ -46,7 +53,7 @@ class Star extends GameObject {
         this.colour = colour;
         this.name = name;
         this.isSelected = false;
-        this.numberOfPlanets = Math.floor(random(1, 8));
+        this.numberOfPlanets = Math.floor(random(1, 6));
         this.distanceToShip = -1;
         this.shipPosition = null;
        
@@ -125,6 +132,7 @@ class GameScene {
     update() {}
     draw() {}
     mousePressed() {}
+    mouseMoved() {}
 
 }
 
@@ -135,6 +143,7 @@ class UniverseScene extends GameScene {
         this.gameObjects = Array();
         this.infoPanel = new InfoPanel(0, 0, width/6, height);
         this.ship = new Ship(width/2, height/2, "Ship McShip");
+        this.selectedStar = null;
     }
 
     setup() {
@@ -160,6 +169,12 @@ class UniverseScene extends GameScene {
                 if(distance <= this.gameObjects[i].radius) {
                     this.gameObjects[i].setSelected(createVector(this.ship.position.x, this.ship.position.y));
                     console.log("Clicked " + this.gameObjects[i].name);
+                    this.selectedStar = this.gameObjects[i];
+                    var systemScene = new SystemScene(this.selectedStar.name, this.selectedStar);
+                    gameScenes[systemScene.name] = systemScene;
+                    currentScene = this.selectedStar.name;
+                    console.log(currentScene);
+                    break;
                 }
             }
         }
@@ -212,24 +227,145 @@ class ShipScene extends GameScene {
     }
 
     setup(){
-
         var bridge = new Bridge(90,90);
         this.gameObjects.push(bridge);
-
     }
+
     update(){}
     mousePressed(){}
+
     draw(){
         background(0);
+        
         for(var i = 0; i < this.gameObjects.length; i++) {
-
             this.gameObjects[i].draw();
         }
+
         if(this.showInfoPanel) {
             this.infoPanel.draw();
         }
 
     }
+
+
+}
+
+class Planet extends GameObject {
+
+    constructor(x, y, star, index) {
+        super(x, y)
+        var resources = ["metal", "gas", "organics"];
+        this.amount = 100
+        this.radius = random(10, 40)
+        var colours = ["red", "blue", "green"]
+        this.zoomLevel = 1
+        var randomIndex = Math.floor(random(0, colours.length));
+        this.colour = colours[randomIndex];
+        this.resource = resources[randomIndex];
+        this.star = star;
+        this.name = this.star.name + "-" + index;
+    }
+
+
+    draw() {
+        fill(this.colour);
+        strokeWeight(2);
+        ellipse(this.position.x, this.position.y, this.radius * this.zoomLevel)
+        strokeWeight(1)
+        stroke(0);
+    }
+
+}
+
+class SystemScene extends GameScene {
+    
+    constructor(name, star) {
+        super(name);
+        this.star = star;
+        this.selectedPlanetIndex = 0;
+        this.isPlanetSelected = false;
+        if(planets[this.star.name]) {
+
+        } else {
+            planets[this.star.name] = [];
+            for(var i = 0; i < this.star.numberOfPlanets; i++) {
+                var x = i * 75 + this.star.radius * 2.5 + 50
+                var planet = new Planet(x, height/2, this.star, i)
+                planets[this.star.name].push(planet)
+            }
+        }
+
+
+    }
+
+    mouseMoved() {
+        for(var i = 0; i < this.star.numberOfPlanets; i++) {
+            if(dist(planets[this.star.name][i].position.x, 
+                    planets[this.star.name][i].position.y, 
+                    mouseX, 
+                    mouseY) < planets[this.star.name][i].radius) {
+                        this.selectedPlanetIndex = i;
+                        this.isPlanetSelected = true;
+                        planets[this.star.name][i].zoomLevel = 2;
+                        break;
+
+            } else {
+                planets[this.star.name][i].zoomLevel = 1;
+            }
+            this.isPlanetSelected = false; 
+        }
+    }
+
+    mousePressed(){
+        if(!this.isPlanetSelected)  {
+            currentScene = "universe";
+        }
+    }
+
+    draw() {
+        
+        background(50);
+        text(this.star.numberOfPlanets, 5, 10);
+        fill('yellow');
+        
+        ellipse(0, height/2, this.star.radius * 5);
+        
+        for(var i = 0; i < planets[this.star.name].length; i++) {
+            if(i == this.selectedPlanetIndex && this.isPlanetSelected) {
+                stroke(255);
+            }
+            planets[this.star.name][i].draw();
+        }
+        if(this.isPlanetSelected) {
+            this.drawPlanetInfo();
+            this.drawPlanetSelectionBox();
+        }
+
+    }
+
+
+    drawPlanetInfo() {
+        fill("#dddddd")
+        text(planets[this.star.name][this.selectedPlanetIndex].resource, width/2, 10)
+        text("[ Click for info ]", width/2, 20)
+    }
+
+    drawPlanetSelectionBox() {
+        fill("#ffccaa")
+        stroke("black")
+        strokeWeight(3)
+        rect(width/2 - 100, height - 160, 200, 150)
+
+        strokeWeight(0)
+        fill("black")
+        
+        text(planets[this.star.name][this.selectedPlanetIndex].name, width/2 - 100, height - 140)
+        text(planets[this.star.name][this.selectedPlanetIndex].amount, width/2 - 100, height - 120)
+
+
+    }
+
+
 
 
 }
