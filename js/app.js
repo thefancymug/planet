@@ -2,15 +2,20 @@ var gameScenes = Array();
 var infoPanel;
 var currentScene = "universe";
 var planets = Array();
+var ship;
+var button;
 
 function setup() {
     createCanvas(600, 600);
     var universeScene = new UniverseScene("universe");
     var shipScene = new ShipScene("ship");
-
+    shipScene.setup()
     gameScenes[shipScene.name] = shipScene;
     gameScenes[universeScene.name] = universeScene; 
     gameScenes[currentScene].setup();  
+    button = createButton("Ship");
+    button.mousePressed(transitionScene)
+
 }
 
 function draw () {
@@ -30,6 +35,9 @@ function SelectStar(star) {
 
 }
 
+function transitionScene() {
+    currentScene = "ship";
+}
 
 
 class GameObject{
@@ -111,16 +119,25 @@ class Ship extends GameObject {
         super(x,y);
         this.name = name;
         this.showShip = true;
+        this.rooms = Array()
     }
 
     draw() {
-        if(this.showShip) {
-            fill(220)
-            line(this.position.x, this.position.y, this.position.x + 50, this.position.y - 50);
-            rect(this.position.x + 50, this.position.y - 100, 75, 50);
-            fill(20)
-            text(this.name, this.position.x + 55, this.position.y - 75);
+        switch (currentScene) {
+            case "universe":
+            if(this.showShip) {
+                fill(220)
+                line(this.position.x, this.position.y, this.position.x + 50, this.position.y - 50);
+                rect(this.position.x + 50, this.position.y - 100, 75, 50);
+                fill(20)
+                text(this.name, this.position.x + 55, this.position.y - 75);
+                }
+                break;
+        
+            default:
+                break;
         }
+        
     }
 }
 
@@ -195,19 +212,22 @@ class UniverseScene extends GameScene {
 
 }
 
-class ShipRoom {
+class ShipRoom extends GameObject{
     constructor(x,y) {
-        this.position = createVector(x,y);
+        super(x,y)
     }
 
     draw(){}
 
 }
 
+
+
 class Bridge extends ShipRoom {
     constructor(x,y) {
         super(x,y);
         this.colour = "white"
+        this.name = "Bridge"
     }
     setup(){}
     draw() {
@@ -235,16 +255,19 @@ class ShipScene extends GameScene {
     mousePressed(){}
 
     draw(){
-        background(0);
-        
+        background(20);
         for(var i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].draw();
         }
 
-        if(this.showInfoPanel) {
-            this.infoPanel.draw();
-        }
+        this.getAdjacents()
 
+    }
+
+    getAdjacents() {
+        for(var i = 0; i < this.gameObjects.length; i++) {
+            ellipse(this.gameObjects[i].position.x + 150, this.gameObjects[i].position.y + 50, 20);
+        }
     }
 
 
@@ -292,6 +315,7 @@ class SystemScene extends GameScene {
                 var x = i * 75 + this.star.radius * 2.5 + 50
                 var planet = new Planet(x, height/2, this.star, i)
                 planets[this.star.name].push(planet)
+                
             }
         }
 
@@ -361,6 +385,8 @@ class SystemScene extends GameScene {
         
         text(planets[this.star.name][this.selectedPlanetIndex].name, width/2 - 100, height - 140)
         text(planets[this.star.name][this.selectedPlanetIndex].amount, width/2 - 100, height - 120)
+        text(planets[this.star.name][this.selectedPlanetIndex].resource, width/2 - 100, height - 100)
+
 
 
     }
